@@ -37,8 +37,16 @@ Router.go = _.wrap(Router.go, function(originalGo) {
 	var IRPackage = Package["iron:router"] || Package["iron-router"];
 	var waitList = new IRPackage.WaitList;
 	
+	// Prepare args for the beforeLeavePrevious hook:
+	// 1. Pass any options for the new route as this
+	// 2. The new route
+	// 3. The existing route
+	var newRouteOptions = args[1] || {};
+	var hookArgs = [].concat(newRouteOptions, route, Router.current().route);
+
+	// Set up each function in the list to wait until ready
 	_.each(pathHooksObj.callbacks, function eachWait (fn) {
-		waitList.wait(fn);
+		waitList.wait(Function.prototype.bind.apply(fn, hookArgs));
 	});
 	
 

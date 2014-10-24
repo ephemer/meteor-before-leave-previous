@@ -1,6 +1,6 @@
 Package.describe({
   summary: "Stop IronRouter from navigating until all beforeLeavePrevious functions return true",
-  version: "1.0.1",
+  version: "1.0.2",
   git: "https://github.com/ephemer/meteor-before-leave-previous"
 });
 
