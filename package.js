@@ -5,7 +5,6 @@ Package.describe({
 });
 
 Package.onUse(function(api) {
-  api.versionsFrom('METEOR@0.9.0');
   api.use(['iron:router@0.9.0', 'underscore'], 'client');
   api.addFiles('ephemer:before-leave-previous.js', 'client');
 });
