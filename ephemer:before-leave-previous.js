@@ -7,11 +7,19 @@ var beforeLeavePreviousHooks = [];
 //   callbacks: ...
 // }]
 
+// Run callbacks reactively and prevent navigation until all return true
+var IRPackage = Package["iron:router"] || Package["iron-router"];
+var waitList = new IRPackage.WaitList;
+
+
 var currentComputation;
 
 Router.go = _.wrap(Router.go, function(originalGo) {
 	var self = this;
 	var args = _.toArray(arguments).slice(1); // remove originalGo fn
+
+	waitList.stop();
+    waitList = new IRPackage.WaitList;
 
 	// ------------------------------------------------------------------------
 	// Deal with different possibilities of calling Router.go()
@@ -32,16 +40,12 @@ Router.go = _.wrap(Router.go, function(originalGo) {
 	var pathHooksObj = _.findWhere(beforeLeavePreviousHooks, {"path": route.originalPath});
 	if(typeof pathHooksObj !== "object") return originalGo.apply(self,args); // no hooks for this path
 
-	
-	// Run callbacks reactively and prevent navigation until all return true
-	var IRPackage = Package["iron:router"] || Package["iron-router"];
-	var waitList = new IRPackage.WaitList;
-	
+
 	// Prepare args for the beforeLeavePrevious hook:
 	// 1. Pass any options for the new route as this
 	// 2. The new route
 	// 3. The existing route
-	var newRouteOptions = args[1] || {};
+	var newRouteOptions = args[1] || args[0] || {};
 	var hookArgs = [].concat(newRouteOptions, route, Router.current().route);
 
 	// Set up each function in the list to wait until ready
