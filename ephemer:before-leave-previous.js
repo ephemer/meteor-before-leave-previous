@@ -8,8 +8,7 @@ var beforeLeavePreviousHooks = [];
 // }]
 
 // Run callbacks reactively and prevent navigation until all return true
-var IRPackage = Package["iron:router"] || Package["iron-router"];
-var waitList = new IRPackage.WaitList;
+var waitList = new Iron.WaitList();
 
 
 var currentComputation;
@@ -19,7 +18,7 @@ Router.go = _.wrap(Router.go, function(originalGo) {
 	var args = _.toArray(arguments).slice(1); // remove originalGo fn
 
 	waitList.stop();
-    waitList = new IRPackage.WaitList;
+    waitList = new Iron.WaitList;
 
 	// ------------------------------------------------------------------------
 	// Deal with different possibilities of calling Router.go()
@@ -27,26 +26,24 @@ Router.go = _.wrap(Router.go, function(originalGo) {
 	
 
 	// Router.go() can also take a route name instead of a path
-	var route = Router.match(args[0]) // A URL
-			 || _.findWhere(Router.routes, {"name": args[0]}) // Route name
-			 || {}; // Couldn't find anything
-
+	var newRoute = Router.findFirstRoute(args[0]) // A URL
+			 || Router.findFirstRoute(Router.path(args[0], args[1])) // Route name with optional params
 	
+
 	// Let IronRouter deal with it if we can't find a path
-	if(!route.originalPath) return originalGo.apply(self, args);
+	if(!newRoute || !newRoute.options.path) return originalGo.apply(self, args);
 
 	
 	// Otherwise find the beforeLeavePrevious hooks for the route's path
-	var pathHooksObj = _.findWhere(beforeLeavePreviousHooks, {"path": route.originalPath});
-	if(typeof pathHooksObj !== "object") return originalGo.apply(self,args); // no hooks for this path
-
+	var pathHooksObj = _.findWhere(beforeLeavePreviousHooks, {"path": newRoute.options.path});
+	if(typeof pathHooksObj !== "object") return originalGo.apply(self, args); // no hooks for this path
 
 	// Prepare args for the beforeLeavePrevious hook:
-	// 1. Pass any options for the new route as this
-	// 2. The new route
-	// 3. The existing route
-	var newRouteOptions = args[1] || args[0] || {};
-	var hookArgs = [].concat(newRouteOptions, route, Router.current().route);
+	// 1. Pass any options for the new route as 'this'
+	// 2. The route we're trying to '.go()' to
+	// 3. The ('previous') route we're leaving from
+	var newRouteOptions = args[1] || {};
+	var hookArgs = [].concat(newRouteOptions, newRoute, Router.current().route);
 
 	// Set up each function in the list to wait until ready
 	_.each(pathHooksObj.callbacks, function eachWait (fn) {
@@ -113,7 +110,7 @@ function collectHooksFromRoute(name, options) {
 }
 
 
-// We assume no runtime routes will be added
+// We assume no routes will be added at runtime
 // But we could easily add this functionality using the addHook function
 Meteor.startup(function collectAllHooks () {
 	Router.routes.forEach(function(route) {
